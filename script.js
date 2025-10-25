@@ -2,7 +2,7 @@ const btn = document.getElementById("checkBtn");
 const input = document.getElementById("userInput");
 const result = document.getElementById("result");
 
-const API_URL = "https://api-inference.huggingface.co/models/pszemraj/flan-t5-large-grammar-synthesis";
+const API_URL = "const API_URL = "https://api-inference.huggingface.co/models/pszemraj/flan-t5-base-grammar-synthesis";
 const API_KEY = "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";
 
 btn.addEventListener("click", async () => {
@@ -28,4 +28,5 @@ btn.addEventListener("click", async () => {
         result.innerHTML = `Original: ${original}<br>Corrected: ${corrected}`;
     }
 });
+
 

@@ -1,22 +1,26 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>AI Grammar Checker</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AI Grammar Checker</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div class="container">
+  <div class="container">
     <h1>✨ AI Grammar Checker</h1>
 
-    <form>
-        <textarea id="userInput" placeholder="Type something..."></textarea>
-        <button type="button" id="checkBtn">Check Grammar</button>
-    </form>
+    <label for="text-input">Enter text</label>
+    <textarea id="text-input" placeholder="Type something..."></textarea>
 
-    <div id="result"></div>
-</div>
+    <button id="check-btn" type="button">Check Grammar</button>
 
-<script src="script.js"></script>
+    <p id="result" aria-live="polite"></p>
+  </div>
+
+  <!-- script must be here, after DOM elements -->
+  <script src="script.js"></script>
 </body>
 </html>
+

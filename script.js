@@ -3,7 +3,7 @@ const input = document.getElementById("userInput");
 const result = document.getElementById("result");
 
 const API_URL = "https://api-inference.huggingface.co/models/pszemraj/flan-t5-large-grammar-synthesis";
-const API_KEY = "YOUR_API_KEY_HERE";
+const API_KEY = "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";
 
 btn.addEventListener("click", async () => {
     const original = input.value.trim();
@@ -28,3 +28,4 @@ btn.addEventListener("click", async () => {
         result.innerHTML = `Original: ${original}<br>Corrected: ${corrected}`;
     }
 });
+

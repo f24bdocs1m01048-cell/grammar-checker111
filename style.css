@@ -1,107 +1,61 @@
-/* Add this to your style.css */
-.text-comparison {
+body {
+    font-family: Arial, sans-serif;
+    background: #ffe6f2;
     display: flex;
-    gap: 20px;
-    margin: 20px 0;
+    justify-content: center;
+    padding-top: 40px;
+    margin: 0;
 }
 
-.text-box {
-    flex: 1;
-    padding: 15px;
+.container {
+    width: 500px;
+    background: #fff;
+    border-radius: 10px;
+    padding: 25px;
+    box-shadow: 0px 0px 15px rgba(255,0,128,0.3);
+}
+
+h1 {
+    color: #ff1493;
+    text-align: center;
+}
+
+textarea {
+    width: 100%;
+    height: 150px;
+    padding: 10px;
+    border: 2px solid #ff66b2;
     border-radius: 8px;
-    background: white;
-    border: 2px solid #f0f0f0;
-}
-
-.text-box label {
-    font-weight: bold;
-    color: #333;
-    display: block;
-    margin-bottom: 10px;
-    font-size: 14px;
-}
-
-.text.original {
-    color: #e74c3c;
     font-size: 16px;
-    line-height: 1.4;
-    padding: 10px;
-    background: #fdf2f2;
-    border-radius: 5px;
+    resize: vertical;
+    box-sizing: border-box;
 }
 
-.text.corrected {
-    color: #27ae60;
-    font-size: 16px;
-    line-height: 1.4;
-    padding: 10px;
-    background: #f2fdf2;
-    border-radius: 5px;
+button {
+    width: 100%;
+    margin-top: 15px;
+    border: none;
+    padding: 12px;
+    background: #ff1493;
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 18px;
 }
 
-.corrections {
+button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+button:hover:not(:disabled) {
+    background: #e01185;
+}
+
+#result {
     margin-top: 20px;
     padding: 15px;
-    background: white;
     border-radius: 8px;
-}
-
-.corrections h4 {
-    margin-bottom: 15px;
-    color: #333;
-}
-
-.correction-item {
-    padding: 10px;
-    margin: 8px 0;
-    border-left: 4px solid #3498db;
-    background: #f8f9fa;
-}
-
-.change {
-    font-weight: bold;
-    color: #2c3e50;
-    display: block;
-    margin-bottom: 5px;
-}
-
-.reason {
-    color: #7f8c8d;
-    font-style: italic;
-}
-
-.result-header {
-    text-align: center;
-    margin-bottom: 20px;
-}
-
-.result-header h3 {
-    color: #2c3e50;
-    margin-bottom: 5px;
-}
-
-.score {
-    color: #e67e22;
-    font-weight: bold;
-}
-
-.result-success {
-    text-align: center;
-    padding: 30px;
-    background: white;
-    border-radius: 10px;
-    border: 2px solid #27ae60;
-}
-
-.success-icon {
-    font-size: 48px;
-    margin-bottom: 15px;
-}
-
-.original-text {
-    margin-top: 15px;
-    padding: 10px;
-    background: #f8f9fa;
-    border-radius: 5px;
-    font-style: italic;
+    background: #f9f9f9;
+    min-height: 50px;
 }

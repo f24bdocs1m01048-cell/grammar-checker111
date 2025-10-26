@@ -3,22 +3,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const input = document.getElementById("userInput");
     const result = document.getElementById("result");
 
-    // Check if elements exist
-    if (!btn || !input || !result) {
-        console.error("One or more elements not found!");
-        return;
-    }
-
-    console.log("Grammar checker loaded successfully!");
-
     const API_URL = "https://api.languagetool.org/v2/check";
 
     btn.addEventListener("click", async () => {
-        console.log("Button clicked!");
+        const originalText = input.value.trim();
         
-        const text = input.value.trim();
-        
-        if (!text) {
+        if (!originalText) {
             result.innerHTML = "Please enter some text to check.";
             return;
         }
@@ -28,37 +18,61 @@ document.addEventListener('DOMContentLoaded', function() {
         btn.textContent = "Checking...";
 
         try {
-            console.log("Making API request...");
-            
             const response = await fetch(API_URL, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/x-www-form-urlencoded",
                 },
-                body: `text=${encodeURIComponent(text)}&language=en-US`
+                body: `text=${encodeURIComponent(originalText)}&language=en-US`
             });
-
-            console.log("Response received:", response.status);
 
             if (!response.ok) {
                 throw new Error(`API error: ${response.status}`);
             }
 
             const data = await response.json();
-            console.log("Data parsed:", data);
             
             if (data.matches && data.matches.length > 0) {
-                let resultHTML = `<strong>Found ${data.matches.length} issue(s):</strong><br><br>`;
+                // Apply corrections in reverse order (from end to beginning)
+                // to avoid position shifting issues
+                let correctedText = originalText;
+                const corrections = [];
                 
-                data.matches.forEach((match, index) => {
-                    const context = text.substring(match.offset, match.offset + match.length);
-                    resultHTML += `<strong>Issue ${index + 1}:</strong> ${match.message}<br>`;
-                    resultHTML += `<strong>Context:</strong> "${context}"<br>`;
+                // Sort matches by offset in descending order
+                const sortedMatches = [...data.matches].sort((a, b) => b.offset - a.offset);
+                
+                sortedMatches.forEach(match => {
                     if (match.replacements && match.replacements.length > 0) {
-                        resultHTML += `<em>Suggestions: ${match.replacements.slice(0, 3).map(r => r.value).join(', ')}</em><br>`;
+                        const bestReplacement = match.replacements[0].value;
+                        const start = match.offset;
+                        const end = match.offset + match.length;
+                        
+                        // Store correction info before modifying text
+                        const originalWord = correctedText.substring(start, end);
+                        
+                        // Apply the correction
+                        correctedText = correctedText.substring(0, start) + bestReplacement + correctedText.substring(end);
+                        
+                        corrections.unshift({
+                            original: originalWord,
+                            corrected: bestReplacement,
+                            message: match.message,
+                            context: correctedText.substring(Math.max(0, start - 10), start + bestReplacement.length + 10)
+                        });
                     }
-                    resultHTML += `<br>`;
                 });
+
+                // Display results
+                let resultHTML = `<strong>Original:</strong> ${originalText}<br><br>`;
+                resultHTML += `<strong>Corrected:</strong> ${correctedText}<br><br>`;
+                
+                if (corrections.length > 0) {
+                    resultHTML += `<strong>Corrections made:</strong><ul>`;
+                    corrections.forEach(correction => {
+                        resultHTML += `<li>"${correction.original}" → "${correction.corrected}"<br><em>${correction.message}</em></li>`;
+                    });
+                    resultHTML += `</ul>`;
+                }
                 
                 result.innerHTML = resultHTML;
             } else {

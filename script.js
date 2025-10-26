@@ -1,69 +1,82 @@
-const btn = document.getElementById("checkBtn");
-const input = document.getElementById("userInput");
-const result = document.getElementById("result");
+document.addEventListener('DOMContentLoaded', function() {
+    const btn = document.getElementById("checkBtn");
+    const input = document.getElementById("userInput");
+    const result = document.getElementById("result");
 
-// Using a free grammar checking API that doesn't require authentication
-const API_URL = "https://api.languagetool.org/v2/check";
-
-btn.addEventListener("click", async () => {
-    const text = input.value.trim();
-    
-    if (!text) {
-        result.innerHTML = "Please enter some text to check.";
+    // Check if elements exist
+    if (!btn || !input || !result) {
+        console.error("One or more elements not found!");
         return;
     }
 
-    result.innerHTML = "Analyzing...";
+    console.log("Grammar checker loaded successfully!");
 
-    try {
-        const response = await fetch(API_URL, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded",
-            },
-            body: `text=${encodeURIComponent(text)}&language=en-US`
-        });
+    const API_URL = "https://api.languagetool.org/v2/check";
 
-        if (!response.ok) {
-            throw new Error(`API error: ${response.status}`);
-        }
-
-        const data = await response.json();
+    btn.addEventListener("click", async () => {
+        console.log("Button clicked!");
         
-        if (data.matches && data.matches.length > 0) {
-            let correctedText = text;
-            let issues = [];
-            
-            // Apply corrections
-            data.matches.forEach(match => {
-                if (match.replacements && match.replacements.length > 0) {
-                    const replacement = match.replacements[0].value;
-                    const start = match.offset;
-                    const end = match.offset + match.length;
-                    correctedText = correctedText.substring(0, start) + replacement + correctedText.substring(end);
-                    
-                    issues.push({
-                        issue: match.message,
-                        suggestion: replacement
-                    });
-                }
-            });
-            
-            let resultHTML = `<strong>Original:</strong> ${text}<br><br>`;
-            resultHTML += `<strong>Corrected:</strong> ${correctedText}<br><br>`;
-            resultHTML += `<strong>Issues found:</strong><ul>`;
-            
-            issues.forEach(issue => {
-                resultHTML += `<li>${issue.issue} → <em>${issue.suggestion}</em></li>`;
-            });
-            
-            resultHTML += `</ul>`;
-            result.innerHTML = resultHTML;
-        } else {
-            result.innerHTML = "✅ No grammar issues found!";
+        const text = input.value.trim();
+        
+        if (!text) {
+            result.innerHTML = "Please enter some text to check.";
+            return;
         }
-    } catch (error) {
-        console.error("Error:", error);
-        result.innerHTML = "❌ Error checking grammar. Please try again.";
-    }
+
+        result.innerHTML = "Analyzing...";
+        btn.disabled = true;
+        btn.textContent = "Checking...";
+
+        try {
+            console.log("Making API request...");
+            
+            const response = await fetch(API_URL, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                },
+                body: `text=${encodeURIComponent(text)}&language=en-US`
+            });
+
+            console.log("Response received:", response.status);
+
+            if (!response.ok) {
+                throw new Error(`API error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log("Data parsed:", data);
+            
+            if (data.matches && data.matches.length > 0) {
+                let resultHTML = `<strong>Found ${data.matches.length} issue(s):</strong><br><br>`;
+                
+                data.matches.forEach((match, index) => {
+                    const context = text.substring(match.offset, match.offset + match.length);
+                    resultHTML += `<strong>Issue ${index + 1}:</strong> ${match.message}<br>`;
+                    resultHTML += `<strong>Context:</strong> "${context}"<br>`;
+                    if (match.replacements && match.replacements.length > 0) {
+                        resultHTML += `<em>Suggestions: ${match.replacements.slice(0, 3).map(r => r.value).join(', ')}</em><br>`;
+                    }
+                    resultHTML += `<br>`;
+                });
+                
+                result.innerHTML = resultHTML;
+            } else {
+                result.innerHTML = "✅ No grammar issues found!";
+            }
+        } catch (error) {
+            console.error("Error:", error);
+            result.innerHTML = "❌ Error checking grammar. Please try again later.";
+        } finally {
+            btn.disabled = false;
+            btn.textContent = "Check Grammar";
+        }
+    });
+
+    // Add Enter key support
+    input.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && e.ctrlKey) {
+            btn.click();
+        }
+    });
 });

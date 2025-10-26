@@ -33,41 +33,65 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
             
             if (data.matches && data.matches.length > 0) {
-                // Apply corrections in reverse order (from end to beginning)
-                // to avoid position shifting issues
+                // Use the API's suggested sentence directly if available
                 let correctedText = originalText;
                 const corrections = [];
                 
-                // Sort matches by offset in descending order
-                const sortedMatches = [...data.matches].sort((a, b) => b.offset - a.offset);
-                
-                sortedMatches.forEach(match => {
-                    if (match.replacements && match.replacements.length > 0) {
-                        const bestReplacement = match.replacements[0].value;
-                        const start = match.offset;
-                        const end = match.offset + match.length;
-                        
-                        // Store correction info before modifying text
-                        const originalWord = correctedText.substring(start, end);
-                        
-                        // Apply the correction
-                        correctedText = correctedText.substring(0, start) + bestReplacement + correctedText.substring(end);
-                        
-                        corrections.unshift({
-                            original: originalWord,
-                            corrected: bestReplacement,
-                            message: match.message,
-                            context: correctedText.substring(Math.max(0, start - 10), start + bestReplacement.length + 10)
-                        });
-                    }
-                });
+                // First, try to find a "whole sentence" correction
+                const sentenceCorrection = data.matches.find(match => 
+                    match.rule && match.rule.category && 
+                    match.rule.category.id === 'TYPOS' &&
+                    match.replacements && match.replacements.some(rep => 
+                        rep.value && rep.value.includes(' ')
+                    )
+                );
+
+                if (sentenceCorrection && sentenceCorrection.replacements && sentenceCorrection.replacements.length > 0) {
+                    // Use the full sentence correction
+                    correctedText = sentenceCorrection.replacements[0].value;
+                    corrections.push({
+                        original: originalText,
+                        corrected: correctedText,
+                        message: sentenceCorrection.message
+                    });
+                } else {
+                    // Apply individual corrections carefully
+                    const sortedMatches = [...data.matches].sort((a, b) => b.offset - a.offset);
+                    
+                    sortedMatches.forEach(match => {
+                        if (match.replacements && match.replacements.length > 0) {
+                            const originalWord = correctedText.substring(match.offset, match.offset + match.length);
+                            let bestReplacement = match.replacements[0].value;
+                            
+                            // Skip problematic replacements
+                            if (bestReplacement === 'ie' || bestReplacement.length < 2) {
+                                return;
+                            }
+                            
+                            // Preserve capitalization
+                            if (originalWord.length > 0 && originalWord[0] === originalWord[0].toUpperCase()) {
+                                bestReplacement = bestReplacement.charAt(0).toUpperCase() + bestReplacement.slice(1);
+                            }
+                            
+                            correctedText = correctedText.substring(0, match.offset) + 
+                                          bestReplacement + 
+                                          correctedText.substring(match.offset + match.length);
+                            
+                            corrections.unshift({
+                                original: originalWord,
+                                corrected: bestReplacement,
+                                message: match.message
+                            });
+                        }
+                    });
+                }
 
                 // Display results
                 let resultHTML = `<strong>Original:</strong> ${originalText}<br><br>`;
                 resultHTML += `<strong>Corrected:</strong> ${correctedText}<br><br>`;
                 
                 if (corrections.length > 0) {
-                    resultHTML += `<strong>Corrections made:</strong><ul>`;
+                    resultHTML += `<strong>Issues found:</strong><ul>`;
                     corrections.forEach(correction => {
                         resultHTML += `<li>"${correction.original}" → "${correction.corrected}"<br><em>${correction.message}</em></li>`;
                     });
@@ -84,13 +108,6 @@ document.addEventListener('DOMContentLoaded', function() {
         } finally {
             btn.disabled = false;
             btn.textContent = "Check Grammar";
-        }
-    });
-
-    // Add Enter key support
-    input.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter' && e.ctrlKey) {
-            btn.click();
         }
     });
 });

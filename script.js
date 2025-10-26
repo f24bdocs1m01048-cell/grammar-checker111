@@ -8,7 +8,7 @@ const API_URL = "https://api-inference.huggingface.co/models/pszemraj/flan-t5-ba
 
 // IMPORTANT: DO NOT commit a real key to a public repo long-term.
 // For now you can place it here to test, but **revoke it afterwards**.
-const API_KEY = "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"; // <-- replace with your token for testing
+const API_KEY = "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"; // <-- replace with your token for testing
 
 if (!btn || !input || !result) {
   console.error("Required DOM elements not found. Check index.html IDs.");
@@ -59,4 +59,5 @@ btn.addEventListener("click", async () => {
     result.innerText = "Network or CORS error — see console.";
   }
 });
+
 

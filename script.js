@@ -1,131 +1,80 @@
-document.addEventListener('DOMContentLoaded', function() {
-    const btn = document.getElementById("checkBtn");
-    const input = document.getElementById("userInput");
-    const result = document.getElementById("result");
+const btn = document.getElementById("checkBtn");
+const input = document.getElementById("userInput");
+const result = document.getElementById("result");
 
-    const API_URL = "https://api.languagetool.org/v2/check";
+// Using the free LanguageTool API without API key (limited but works)
+const API_URL = "https://api.languagetool.org/v2/check";
 
-    btn.addEventListener("click", async () => {
-        const text = input.value.trim();
+btn.addEventListener("click", async () => {
+    const original = input.value.trim();
+
+    if (!original) {
+        result.innerHTML = "Please enter some text to check.";
+        return;
+    }
+
+    result.innerHTML = "Analyzing...";
+    btn.disabled = true;
+
+    try {
+        const response = await fetch(API_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded"
+            },
+            body: `text=${encodeURIComponent(original)}&language=en-US`
+        });
+
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+
+        const data = await response.json();
         
-        if (!text) {
-            showResult("Please enter some text to check.", "error");
-            return;
-        }
-
-        showResult("🔍 Analyzing with AI Grammar Checker...", "loading");
-        btn.disabled = true;
-
-        try {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `text=${encodeURIComponent(text)}&language=en-US`
-            });
-
-            if (!response.ok) {
-                throw new Error(`API error: ${response.status}`);
-            }
-
-            const data = await response.json();
-            displayResults(text, data);
-            
-        } catch (error) {
-            console.error("Error:", error);
-            showResult("❌ Error checking grammar. Please try again.", "error");
-        } finally {
-            btn.disabled = false;
-        }
-    });
-
-    function displayResults(original, data) {
         if (data.matches && data.matches.length > 0) {
-            let correctedText = original;
-            const corrections = [];
-
-            // Apply corrections from end to beginning
+            let corrected = original;
+            let issues = [];
+            
+            // Apply corrections from end to beginning to avoid position issues
             const sortedMatches = [...data.matches].sort((a, b) => b.offset - a.offset);
             
             sortedMatches.forEach(match => {
                 if (match.replacements && match.replacements.length > 0) {
-                    const originalWord = correctedText.substring(match.offset, match.offset + match.length);
-                    let replacement = match.replacements[0].value;
+                    const replacement = match.replacements[0].value;
+                    const start = match.offset;
+                    const end = match.offset + match.length;
                     
-                    // Filter out bad replacements
-                    if (replacement.length < 2 || replacement === 'ie' || replacement === 'i') {
-                        return;
+                    // Only apply if replacement makes sense
+                    if (replacement && replacement.length > 1 && replacement !== 'ie') {
+                        corrected = corrected.substring(0, start) + replacement + corrected.substring(end);
+                        issues.push({
+                            original: original.substring(start, end),
+                            corrected: replacement,
+                            message: match.message
+                        });
                     }
-                    
-                    // Preserve capitalization
-                    if (originalWord[0] === originalWord[0].toUpperCase()) {
-                        replacement = replacement.charAt(0).toUpperCase() + replacement.slice(1);
-                    }
-                    
-                    correctedText = correctedText.substring(0, match.offset) + replacement + correctedText.substring(match.offset + match.length);
-                    
-                    corrections.push({
-                        original: originalWord,
-                        corrected: replacement,
-                        message: match.message
-                    });
                 }
             });
 
-            // FIXED DISPLAY CODE:
-            let html = `
-                <div class="result-header">
-                    <h3>📊 Grammar Analysis</h3>
-                    <div class="score">Found ${corrections.length} issue(s)</div>
-                </div>
-
-                <div class="text-comparison">
-                    <div class="text-box">
-                        <label>Your Text:</label>
-                        <div class="text original">${original}</div>
-                    </div>
-                    <div class="text-box">
-                        <label>Improved Version:</label>
-                        <div class="text corrected">${correctedText}</div>
-                    </div>
-                </div>
-            `;
-
-            if (corrections.length > 0) {
-                html += `
-                    <div class="corrections">
-                        <h4>🔧 Corrections Made:</h4>
-                        <div class="corrections-list">
-                `;
-                
-                corrections.forEach(corr => {
-                    html += `
-                        <div class="correction-item">
-                            <span class="change"><strong>"${corr.original}"</strong> → <strong>"${corr.corrected}"</strong></span>
-                            <span class="reason">${corr.message}</span>
-                        </div>
-                    `;
+            let resultHTML = `<strong>Original:</strong> ${original}<br>`;
+            resultHTML += `<strong>Corrected:</strong> ${corrected}<br><br>`;
+            
+            if (issues.length > 0) {
+                resultHTML += `<strong>Issues fixed:</strong><ul>`;
+                issues.forEach(issue => {
+                    resultHTML += `<li>"${issue.original}" → "${issue.corrected}" - ${issue.message}</li>`;
                 });
-                
-                html += `</div></div>`;
+                resultHTML += `</ul>`;
             }
-
-            result.innerHTML = html;
+            
+            result.innerHTML = resultHTML;
         } else {
-            result.innerHTML = `
-                <div class="result-success">
-                    <div class="success-icon">✅</div>
-                    <h3>Perfect Grammar!</h3>
-                    <p>No issues found in your text:</p>
-                    <div class="original-text">"${original}"</div>
-                </div>
-            `;
+            result.innerHTML = "✅ No grammar issues found!";
         }
-    }
-
-    function showResult(message, type) {
-        result.innerHTML = message;
-        result.className = type;
+    } catch (error) {
+        console.error("Error:", error);
+        result.innerHTML = "❌ Error checking grammar. Please try again.";
+    } finally {
+        btn.disabled = false;
     }
 });

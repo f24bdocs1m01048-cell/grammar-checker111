@@ -3,7 +3,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const input = document.getElementById("userInput");
     const result = document.getElementById("result");
 
-    // Free API - no key required for basic usage
     const API_URL = "https://api.languagetool.org/v2/check";
 
     btn.addEventListener("click", async () => {
@@ -35,10 +34,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
         } catch (error) {
             console.error("Error:", error);
-            // Fallback to client-side checking if API fails
-            showResult("⚠️ Using basic checker...", "loading");
-            const fallbackResult = basicGrammarCheck(text);
-            displayFallbackResults(text, fallbackResult);
+            showResult("❌ Error checking grammar. Please try again.", "error");
         } finally {
             btn.disabled = false;
         }
@@ -49,7 +45,7 @@ document.addEventListener('DOMContentLoaded', function() {
             let correctedText = original;
             const corrections = [];
 
-            // Apply corrections
+            // Apply corrections from end to beginning
             const sortedMatches = [...data.matches].sort((a, b) => b.offset - a.offset);
             
             sortedMatches.forEach(match => {
@@ -58,7 +54,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     let replacement = match.replacements[0].value;
                     
                     // Filter out bad replacements
-                    if (replacement.length < 2 || replacement === 'ie') {
+                    if (replacement.length < 2 || replacement === 'ie' || replacement === 'i') {
                         return;
                     }
                     
@@ -77,6 +73,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
 
+            // FIXED DISPLAY CODE:
             let html = `
                 <div class="result-header">
                     <h3>📊 Grammar Analysis</h3>
@@ -105,7 +102,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 corrections.forEach(corr => {
                     html += `
                         <div class="correction-item">
-                            <span class="change">"${corr.original}" → "${corr.corrected}"</span>
+                            <span class="change"><strong>"${corr.original}"</strong> → <strong>"${corr.corrected}"</strong></span>
                             <span class="reason">${corr.message}</span>
                         </div>
                     `;
@@ -122,51 +119,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     <h3>Perfect Grammar!</h3>
                     <p>No issues found in your text:</p>
                     <div class="original-text">"${original}"</div>
-                </div>
-            `;
-        }
-    }
-
-    function basicGrammarCheck(text) {
-        // Simple client-side fallback
-        const rules = [
-            { regex: /\bi\b/g, correction: 'I', issue: 'Capitalize "I"' },
-            { regex: /\bI\s+is\b/gi, correction: 'I am', issue: 'Use "am" with "I"' },
-            { regex: /\b(he|she|it)\s+(are|were)\b/gi, correction: '$1 is', issue: 'Use "is" with he/she/it' },
-            { regex: /\b(he|she|it)\s+have\b/gi, correction: '$1 has', issue: 'Use "has" with he/she/it' }
-        ];
-
-        let corrected = text;
-        const issues = [];
-
-        rules.forEach(rule => {
-            if (rule.regex.test(corrected)) {
-                corrected = corrected.replace(rule.regex, rule.correction);
-                issues.push(rule.issue);
-            }
-        });
-
-        return { corrected, issues, hasIssues: issues.length > 0 };
-    }
-
-    function displayFallbackResults(original, result) {
-        if (result.hasIssues) {
-            result.innerHTML = `
-                <div class="result-with-issues">
-                    <h3>🔍 Basic Grammar Check</h3>
-                    <p><strong>Original:</strong> ${original}</p>
-                    <p><strong>Suggested:</strong> ${result.corrected}</p>
-                    <div class="issues">
-                        <strong>Issues fixed:</strong>
-                        <ul>${result.issues.map(issue => `<li>${issue}</li>`).join('')}</ul>
-                    </div>
-                </div>
-            `;
-        } else {
-            result.innerHTML = `
-                <div class="result-success">
-                    <h3>✅ Looks Good!</h3>
-                    <p>No obvious grammar issues found.</p>
                 </div>
             `;
         }

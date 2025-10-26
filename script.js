@@ -1,63 +1,69 @@
-// script.js — replace entire file with this
-const btn = document.getElementById("check-btn");
-const input = document.getElementById("text-input");
+const btn = document.getElementById("checkBtn");
+const input = document.getElementById("userInput");
 const result = document.getElementById("result");
 
-// NOTE: use pszemraj/flan-t5-base-grammar-synthesis (reliable)
-const API_URL = "https://api-inference.huggingface.co/models/pszemraj/flan-t5-base-grammar-synthesis";
-
-// IMPORTANT: DO NOT commit a real key to a public repo long-term.
-// For now you can place it here to test, but **revoke it afterwards**.
-const API_KEY = "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"; // <-- replace with your token for testing
-
-if (!btn || !input || !result) {
-  console.error("Required DOM elements not found. Check index.html IDs.");
-  alert("Page setup error: required elements missing. See console.");
-}
+// Using a free grammar checking API that doesn't require authentication
+const API_URL = "https://api.languagetool.org/v2/check";
 
 btn.addEventListener("click", async () => {
-  const text = (input.value || "").trim();
-  if (!text) {
-    result.innerText = "Please type something.";
-    return;
-  }
-
-  result.innerText = "Analyzing... (may take 20-90s if model is waking up)";
-
-  try {
-    const resp = await fetch(API_URL, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ inputs: text })
-    });
-
-    // show status for debugging
-    if (!resp.ok) {
-      const body = await resp.text();
-      console.error("HTTP error:", resp.status, body);
-      result.innerText = `Error: ${resp.status}. Check console.`;
-      return;
+    const text = input.value.trim();
+    
+    if (!text) {
+        result.innerHTML = "Please enter some text to check.";
+        return;
     }
 
-    const data = await resp.json();
-    console.log("HuggingFace response:", data);
+    result.innerHTML = "Analyzing...";
 
-    // handle different model return shapes
-    const corrected = (Array.isArray(data) && (data[0].generated_text || data[0].summary_text || data[0].output)) || data.generated_text || data.summary_text || null;
+    try {
+        const response = await fetch(API_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: `text=${encodeURIComponent(text)}&language=en-US`
+        });
 
-    if (!corrected) {
-      result.innerText = "No valid response from model. Check console for details.";
-      return;
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        if (data.matches && data.matches.length > 0) {
+            let correctedText = text;
+            let issues = [];
+            
+            // Apply corrections
+            data.matches.forEach(match => {
+                if (match.replacements && match.replacements.length > 0) {
+                    const replacement = match.replacements[0].value;
+                    const start = match.offset;
+                    const end = match.offset + match.length;
+                    correctedText = correctedText.substring(0, start) + replacement + correctedText.substring(end);
+                    
+                    issues.push({
+                        issue: match.message,
+                        suggestion: replacement
+                    });
+                }
+            });
+            
+            let resultHTML = `<strong>Original:</strong> ${text}<br><br>`;
+            resultHTML += `<strong>Corrected:</strong> ${correctedText}<br><br>`;
+            resultHTML += `<strong>Issues found:</strong><ul>`;
+            
+            issues.forEach(issue => {
+                resultHTML += `<li>${issue.issue} → <em>${issue.suggestion}</em></li>`;
+            });
+            
+            resultHTML += `</ul>`;
+            result.innerHTML = resultHTML;
+        } else {
+            result.innerHTML = "✅ No grammar issues found!";
+        }
+    } catch (error) {
+        console.error("Error:", error);
+        result.innerHTML = "❌ Error checking grammar. Please try again.";
     }
-
-    result.innerText = corrected;
-  } catch (err) {
-    console.error("Fetch error:", err);
-    result.innerText = "Network or CORS error — see console.";
-  }
 });
-
-
